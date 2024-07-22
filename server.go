@@ -28,31 +28,23 @@ func main() {
 
 	r.Use(middleware)
 
-	// r.HandleFunc("/", getRequest)
-
 	r.PathPrefix("/categories").HandlerFunc(getCategories)
-
 	r.PathPrefix("/items").HandlerFunc(getItem)
 
 	http.ListenAndServe(":8080", r)
 }
 
+/*
+ipSolicitante:NumMinuto -> Request count
+*/
 func middleware(next http.Handler) http.Handler {
 	fmt.Println("Request Middleware")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		currentMinute := time.Now().Minute()
 
-		redisKey := fmt.Sprintf("%s:%d", strings.Split(r.RemoteAddr, ":")[0], currentMinute)
+		reqCheck := readContraintValue(strings.Split(r.RemoteAddr, ":")[0], limitPerIP)
 
-		reqCheck, err := client.Incr(ctx, redisKey).Result()
-
-		fmt.Println(reqCheck)
-		if err != nil {
-			panic(err)
-		}
-
-		if reqCheck > limitPerIP {
+		if !reqCheck {
 			fmt.Fprintf(w, "Alcanzo el limite de request, espere un minuto")
 		} else {
 			next.ServeHTTP(w, r)
@@ -61,26 +53,12 @@ func middleware(next http.Handler) http.Handler {
 	})
 }
 
-/*
-*
-ipSolicitante:NumMinuto -> Request count
-*/
-
 func getCategories(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Request Categories")
-	fmt.Println(r.RemoteAddr)
-	currentMinute := time.Now().Minute()
 
-	redisKey := fmt.Sprintf("categories:%d", currentMinute)
+	reqCheck := readContraintValue("categories", limitCat)
 
-	reqCheck, err := client.Incr(ctx, redisKey).Result()
-
-	fmt.Println(reqCheck)
-	if err != nil {
-		panic(err)
-	}
-
-	if reqCheck > limitCat {
+	if !reqCheck {
 		fmt.Fprintf(w, "Alcanzo el limite de request, espere un minuto")
 	} else {
 		fmt.Fprintf(w, "Your content: herererere")
@@ -90,21 +68,25 @@ func getCategories(w http.ResponseWriter, r *http.Request) {
 func getItem(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("Request Item")
-	currentMinute := time.Now().Minute()
+	reqCheck := readContraintValue("items", limitItems)
 
-	redisKey := fmt.Sprintf("%s/items:%d", strings.Split(r.RemoteAddr, ":")[0], currentMinute)
-
-	reqCheck, err := client.Incr(ctx, redisKey).Result()
-
-	fmt.Println(reqCheck)
-	if err != nil {
-		panic(err)
-	}
-
-	if reqCheck > limitItems {
+	if !reqCheck {
 		fmt.Fprintf(w, "Alcanzo el limite de request, espere un minuto")
 	} else {
 		fmt.Fprintf(w, "Your content: herererere")
 	}
 
+}
+
+func readContraintValue(key string, limit int64) bool {
+	currentMinute := time.Now().Minute()
+
+	redisKey := fmt.Sprintf("%s:%d", key, currentMinute)
+	reqCheck, err := client.Incr(ctx, redisKey).Result()
+
+	if err != nil || reqCheck > limit {
+		return false
+	}
+
+	return true
 }
