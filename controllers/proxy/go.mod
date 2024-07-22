@@ -6,7 +6,10 @@ replace github.com/SrBigotones/proxy-challenge/persistance/mongo_client => ../..
 
 replace github.com/SrBigotones/proxy-challenge/persistance/redis_client => ../../persistance/redis_client
 
+replace github.com/SrBigotones/proxy-challenge/model/user_stats => ../../model/user_stats
+
 require (
+	github.com/SrBigotones/proxy-challenge/model/user_stats v0.0.0-00010101000000-000000000000
 	github.com/SrBigotones/proxy-challenge/persistance/mongo_client v0.0.0-00010101000000-000000000000
 	github.com/SrBigotones/proxy-challenge/persistance/redis_client v0.0.0-00010101000000-000000000000
 	github.com/gorilla/mux v1.8.1

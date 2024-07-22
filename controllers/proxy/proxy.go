@@ -12,24 +12,23 @@ import (
 
 	"github.com/SrBigotones/proxy-challenge/persistance/mongo_client"
 	"github.com/SrBigotones/proxy-challenge/persistance/redis_client"
+
+	"github.com/SrBigotones/proxy-challenge/model/user_stats"
 )
 
-const limitPerIP = 2 //1000
-const limitCat = 1   //10_000
+const limitPerIP = 1000
+const limitCat = 10_000
 const limitItems = 10
 const API_URL = "https://api.mercadolibre.com"
 const logStats = true
 
-func CreateRouter() *mux.Router {
+func RegisterRouter(router *mux.Router) {
 
-	r := mux.NewRouter()
-
+	r := router.NewRoute().Subrouter()
 	r.Use(middleware)
-
 	r.PathPrefix("/categories").HandlerFunc(getCategories)
 	r.PathPrefix("/items").HandlerFunc(getItem)
 
-	return r
 }
 
 /*
@@ -105,21 +104,7 @@ func getContentFromAPI(path string, w http.ResponseWriter) {
 	}
 }
 
-type ClientStat struct {
-	Ip                  string `json:"ip"`
-	Path                string `json:"path"`
-	ResponseTimeMs      int64  `json:"responseTimeMs"`
-	Timestamp           string `json:"timestamp"`
-	StatusCode          int    `json:"statusCode"`
-	http.ResponseWriter `json:"-"`
-}
+func NewLogginResponseWrite(w http.ResponseWriter, r *http.Request) *user_stats.UserStats {
 
-func (stat *ClientStat) WriteHeader(code int) {
-	stat.StatusCode = code
-	stat.ResponseWriter.WriteHeader(code)
-}
-
-func NewLogginResponseWrite(w http.ResponseWriter, r *http.Request) *ClientStat {
-
-	return &ClientStat{ResponseWriter: w, StatusCode: 200, Ip: strings.Split(r.RemoteAddr, ":")[0], Path: r.URL.Path, ResponseTimeMs: 0}
+	return &user_stats.UserStats{ResponseWriter: w, StatusCode: 200, Ip: strings.Split(r.RemoteAddr, ":")[0], Path: r.URL.Path, ResponseTimeMs: 0}
 }

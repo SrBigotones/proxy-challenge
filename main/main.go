@@ -4,21 +4,17 @@ import (
 	"net/http"
 
 	"github.com/SrBigotones/proxy-challenge/controllers/proxy"
+	"github.com/SrBigotones/proxy-challenge/controllers/stats"
+	"github.com/gorilla/mux"
 )
-
-// "github.com/SrBigotones/proxy-challenge/controllers/proxy"
 
 func main() {
 
 	println("Starting server")
 
-	// r := http.NewServeMux()
+	r := mux.NewRouter()
+	stats.RegisterRouter(r)
+	proxy.RegisterRouter(r)
 
-	newRouter := proxy.CreateRouter()
-
-	// r := proxy.CreateRouter()
-
-	// println("Starting server")
-
-	http.ListenAndServe(":8080", newRouter)
+	http.ListenAndServe(":8080", r)
 }

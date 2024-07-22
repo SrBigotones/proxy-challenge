@@ -4,13 +4,21 @@ go 1.22.5
 
 replace github.com/SrBigotones/proxy-challenge/controllers/proxy => ../controllers/proxy
 
+replace github.com/SrBigotones/proxy-challenge/controllers/stats => ../controllers/stats
+
 replace github.com/SrBigotones/proxy-challenge/persistance/mongo_client => ../persistance/mongo_client
 
 replace github.com/SrBigotones/proxy-challenge/persistance/redis_client => ../persistance/redis_client
 
-require github.com/SrBigotones/proxy-challenge/controllers/proxy v0.0.0-00010101000000-000000000000
+replace github.com/SrBigotones/proxy-challenge/model/user_stats => ../model/user_stats
 
 require (
+	github.com/SrBigotones/proxy-challenge/controllers/proxy v0.0.0-00010101000000-000000000000
+	github.com/SrBigotones/proxy-challenge/controllers/stats v0.0.0-00010101000000-000000000000
+)
+
+require (
+	github.com/SrBigotones/proxy-challenge/model/user_stats v0.0.0-00010101000000-000000000000 // indirect
 	github.com/SrBigotones/proxy-challenge/persistance/mongo_client v0.0.0-00010101000000-000000000000 // indirect
 	github.com/SrBigotones/proxy-challenge/persistance/redis_client v0.0.0-00010101000000-000000000000 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
