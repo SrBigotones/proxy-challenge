@@ -5,12 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/redis/go-redis/v9"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const limitPerIP = 2 //1000
@@ -18,6 +21,25 @@ const limitCat = 1   //10_000
 const limitItems = 10
 const API_URL = "https://api.mercadolibre.com"
 const logStats = true
+
+// Mongo related suff here
+var collection *mongo.Collection
+var ctxMongo = context.TODO()
+
+func init() {
+	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017/")
+	client, err := mongo.Connect(ctx, clientOptions)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = client.Ping(ctx, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	collection = client.Database("proxy").Collection("client_stats")
+}
 
 var client = redis.NewClient(&redis.Options{
 	Addr:     "localhost:6379",
@@ -63,6 +85,14 @@ func middleware(next http.Handler) http.Handler {
 			lrw.ResponseTimeMs = endTime
 			stat2D, _ := json.Marshal(lrw)
 			fmt.Println(string(stat2D))
+
+			var v interface{}
+
+			if err := json.Unmarshal(stat2D, &v); err != nil {
+				// handle error
+				log.Fatal(err)
+			}
+			collection.InsertOne(ctxMongo, v)
 		}
 	})
 }
@@ -136,5 +166,5 @@ func (stat *ClientStat) WriteHeader(code int) {
 
 func NewLogginResponseWrite(w http.ResponseWriter, r *http.Request) *ClientStat {
 
-	return &ClientStat{ResponseWriter: w, StatusCode: 200, Ip: r.RemoteAddr, Path: r.URL.Path, ResponseTimeMs: 0}
+	return &ClientStat{ResponseWriter: w, StatusCode: 200, Ip: strings.Split(r.RemoteAddr, ":")[0], Path: r.URL.Path, ResponseTimeMs: 0}
 }
