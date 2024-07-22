@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -12,8 +13,9 @@ import (
 )
 
 const limitPerIP = 2 //1000
-const limitCat = 3   //10_000
+const limitCat = 1   //10_000
 const limitItems = 10
+const API_URL = "https://api.mercadolibre.com"
 
 var client = redis.NewClient(&redis.Options{
 	Addr:     "localhost:6379",
@@ -38,9 +40,10 @@ func main() {
 ipSolicitante:NumMinuto -> Request count
 */
 func middleware(next http.Handler) http.Handler {
-	fmt.Println("Request Middleware")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		fmt.Printf("Request from %s to %s\n", r.RemoteAddr, r.URL)
 
 		reqCheck := readContraintValue(strings.Split(r.RemoteAddr, ":")[0], limitPerIP)
 
@@ -54,26 +57,24 @@ func middleware(next http.Handler) http.Handler {
 }
 
 func getCategories(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Request Categories")
 
 	reqCheck := readContraintValue("categories", limitCat)
 
 	if !reqCheck {
 		fmt.Fprintf(w, "Alcanzo el limite de request, espere un minuto")
 	} else {
-		fmt.Fprintf(w, "Your content: herererere")
+		getContentFromAPI(r.URL.Path, w)
 	}
 }
 
 func getItem(w http.ResponseWriter, r *http.Request) {
 
-	fmt.Println("Request Item")
 	reqCheck := readContraintValue("items", limitItems)
 
 	if !reqCheck {
 		fmt.Fprintf(w, "Alcanzo el limite de request, espere un minuto")
 	} else {
-		fmt.Fprintf(w, "Your content: herererere")
+		getContentFromAPI(r.URL.Path, w)
 	}
 
 }
@@ -89,4 +90,19 @@ func readContraintValue(key string, limit int64) bool {
 	}
 
 	return true
+}
+
+func getContentFromAPI(path string, w http.ResponseWriter) {
+	res, err := http.Get(API_URL + path)
+	if err != nil {
+		panic(err)
+	} else {
+		w.Header().Set("Content-Type", "application/json")
+		resBody, err := io.ReadAll(res.Body)
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Fprint(w, string(resBody))
+	}
 }
