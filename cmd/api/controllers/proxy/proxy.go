@@ -20,27 +20,39 @@ const limitItems = 10
 const API_URL = "https://api.mercadolibre.com"
 const logStats = true
 
-func RegisterRouter(router *mux.Router) {
+type ProxyControler struct {
+	redisSession *redis_client.RedisClient
+	mongoSession *mongo_client.MongoClient
+}
+
+func NewProxyController(redisSession *redis_client.RedisClient, mongoSession *mongo_client.MongoClient) *ProxyControler {
+	return &ProxyControler{
+		redisSession: redisSession,
+		mongoSession: mongoSession,
+	}
+}
+
+func (controller *ProxyControler) RegisterRouter(router *mux.Router) {
 
 	r := router.NewRoute().Subrouter()
-	r.Use(middleware)
-	r.PathPrefix("/categories").HandlerFunc(getCategories)
-	r.PathPrefix("/items").HandlerFunc(getItem)
+	r.Use(controller.middleware)
+	r.PathPrefix("/categories").HandlerFunc(controller.getCategories)
+	r.PathPrefix("/items").HandlerFunc(controller.getItem)
 
 }
 
 /*
 ipSolicitante:NumMinuto -> Request count
 */
-func middleware(next http.Handler) http.Handler {
+func (controller *ProxyControler) middleware(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		startTime := time.Now().UnixMilli()
-		lrw := NewLogginResponseWrite(w, r)
+		lrw := controller.NewLogginResponseWrite(w, r)
 
 		fmt.Printf("Request from %s to %s\n", r.RemoteAddr, r.URL)
 
-		reqCheck := redis_client.ReadContraintValue(strings.Split(r.RemoteAddr, ":")[0], limitPerIP)
+		reqCheck := controller.redisSession.ReadContraintValue(strings.Split(r.RemoteAddr, ":")[0], limitPerIP)
 
 		if !reqCheck {
 			w.WriteHeader(http.StatusTooManyRequests)
@@ -56,37 +68,37 @@ func middleware(next http.Handler) http.Handler {
 			lrw.Timestamp = time.Now().String()
 			stat2D, _ := json.Marshal(lrw)
 			fmt.Println(string(stat2D))
-			mongo_client.InsertToCollection(stat2D)
+			controller.mongoSession.InsertToCollection(stat2D)
 		}
 	})
 }
 
-func getCategories(w http.ResponseWriter, r *http.Request) {
+func (controller *ProxyControler) getCategories(w http.ResponseWriter, r *http.Request) {
 
-	reqCheck := redis_client.ReadContraintValue("categories", limitCat)
-
-	if !reqCheck {
-		w.WriteHeader(http.StatusTooManyRequests)
-		fmt.Fprintf(w, "Alcanzo el limite de request, espere un minuto")
-	} else {
-		getContentFromAPI(r.URL.Path, w)
-	}
-}
-
-func getItem(w http.ResponseWriter, r *http.Request) {
-
-	reqCheck := redis_client.ReadContraintValue("items", limitItems)
+	reqCheck := controller.redisSession.ReadContraintValue("categories", limitCat)
 
 	if !reqCheck {
 		w.WriteHeader(http.StatusTooManyRequests)
 		fmt.Fprintf(w, "Alcanzo el limite de request, espere un minuto")
 	} else {
-		getContentFromAPI(r.URL.Path, w)
+		controller.getContentFromAPI(r.URL.Path, w)
+	}
+}
+
+func (controller *ProxyControler) getItem(w http.ResponseWriter, r *http.Request) {
+
+	reqCheck := controller.redisSession.ReadContraintValue("items", limitItems)
+
+	if !reqCheck {
+		w.WriteHeader(http.StatusTooManyRequests)
+		fmt.Fprintf(w, "Alcanzo el limite de request, espere un minuto")
+	} else {
+		controller.getContentFromAPI(r.URL.Path, w)
 	}
 
 }
 
-func getContentFromAPI(path string, w http.ResponseWriter) {
+func (controller *ProxyControler) getContentFromAPI(path string, w http.ResponseWriter) {
 	res, err := http.Get(API_URL + path)
 	if err != nil {
 		panic(err)
@@ -102,7 +114,7 @@ func getContentFromAPI(path string, w http.ResponseWriter) {
 	}
 }
 
-func NewLogginResponseWrite(w http.ResponseWriter, r *http.Request) *user_stats.UserStats {
+func (controller *ProxyControler) NewLogginResponseWrite(w http.ResponseWriter, r *http.Request) *user_stats.UserStats {
 
 	return &user_stats.UserStats{ResponseWriter: w, StatusCode: 200, Ip: strings.Split(r.RemoteAddr, ":")[0], Path: r.URL.Path, ResponseTimeMs: 0}
 }

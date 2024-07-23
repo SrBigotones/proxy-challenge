@@ -9,18 +9,27 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func RegisterRouter(r *mux.Router) {
+type StatsController struct {
+	mongoSession *mongo_client.MongoClient
+}
 
-	r.PathPrefix("/stats/").HandlerFunc(GetStatsPerIp)
-	r.PathPrefix("/stats").HandlerFunc(GetAllStats)
+func NewStatController(mongoSession *mongo_client.MongoClient) *StatsController {
+	controller := StatsController{mongoSession: mongoSession}
+	return &controller
+}
+
+func (controller *StatsController) RegisterRouter(r *mux.Router) {
+
+	r.PathPrefix("/stats/").HandlerFunc(controller.GetStatsPerIp)
+	r.PathPrefix("/stats").HandlerFunc(controller.GetAllStats)
 
 }
 
-func GetStatsPerIp(w http.ResponseWriter, r *http.Request) {
+func (controller *StatsController) GetStatsPerIp(w http.ResponseWriter, r *http.Request) {
 
 	hIp := r.URL.Query().Get("ip")
 
-	result, _ := mongo_client.FindByIP(hIp)
+	result, _ := controller.mongoSession.FindByIP(hIp)
 
 	if len(result) == 0 || result == nil {
 		w.WriteHeader(http.StatusNotFound)
@@ -34,8 +43,8 @@ func GetStatsPerIp(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, string(body2d))
 }
 
-func GetAllStats(w http.ResponseWriter, r *http.Request) {
-	result, err := mongo_client.FindAll()
+func (controller *StatsController) GetAllStats(w http.ResponseWriter, r *http.Request) {
+	result, err := controller.mongoSession.FindAll()
 
 	if err != nil {
 		panic(err)

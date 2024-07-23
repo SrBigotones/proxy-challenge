@@ -12,39 +12,55 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// Mongo related suff here
-var collection *mongo.Collection
-var ctxMongo = context.TODO()
+type MongoClient struct {
+	collection *mongo.Collection
+	ctx        context.Context
 
-func init() {
-	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017/")
-	client, err := mongo.Connect(ctxMongo, clientOptions)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = client.Ping(ctxMongo, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	collection = client.Database("proxy").Collection("client_stats")
+	Addr           string
+	Port           string
+	Db             string
+	CollectionName string
 }
 
-func InsertToCollection(jsonString []byte) {
+func NewMognoClient(addr string, port string, dbName string, collectionName string) *MongoClient {
+	mongoClient := MongoClient{
+		Addr:           addr,
+		Port:           port,
+		Db:             dbName,
+		CollectionName: collectionName,
+		ctx:            context.TODO(),
+	}
+
+	clientOptions := options.Client().ApplyURI("mongodb://" + mongoClient.Addr + ":" + mongoClient.Port + "/")
+	client, err := mongo.Connect(mongoClient.ctx, clientOptions)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = client.Ping(mongoClient.ctx, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	mongoClient.collection = client.Database("proxy").Collection("client_stats")
+
+	return &mongoClient
+}
+
+func (mongoSession *MongoClient) InsertToCollection(jsonString []byte) {
 	var v interface{}
 
 	if err := json.Unmarshal(jsonString, &v); err != nil {
 		// handle error
 		log.Fatal(err)
 	}
-	collection.InsertOne(ctxMongo, v)
+	mongoSession.collection.InsertOne(mongoSession.ctx, v)
 }
 
-func FindByIP(ip string) ([]*user_stats.UserStats, error) {
+func (mongoSession *MongoClient) FindByIP(ip string) ([]*user_stats.UserStats, error) {
 
 	exampleFilter := bson.D{primitive.E{Key: "ip", Value: ip}}
-	cur, err := collection.Find(ctxMongo, exampleFilter)
+	cur, err := mongoSession.collection.Find(mongoSession.ctx, exampleFilter)
 
 	var results []*user_stats.UserStats
 
@@ -52,7 +68,7 @@ func FindByIP(ip string) ([]*user_stats.UserStats, error) {
 		return results, err
 	}
 
-	for cur.Next(ctxMongo) {
+	for cur.Next(mongoSession.ctx) {
 		var client user_stats.UserStats
 		err := cur.Decode(&client)
 		if err != nil {
@@ -62,18 +78,18 @@ func FindByIP(ip string) ([]*user_stats.UserStats, error) {
 		results = append(results, &client)
 	}
 
-	cur.Close(ctxMongo)
+	cur.Close(mongoSession.ctx)
 
 	return results, nil
 }
 
-func FindAll() ([]*user_stats.UserStats, error) {
+func (mongoSession *MongoClient) FindAll() ([]*user_stats.UserStats, error) {
 
 	// filter := bson.D{{}}
 
 	findOptions := options.Find()
 
-	cur, err := collection.Find(ctxMongo, bson.D{{}}, findOptions)
+	cur, err := mongoSession.collection.Find(mongoSession.ctx, bson.D{{}}, findOptions)
 
 	var results []*user_stats.UserStats
 
@@ -89,7 +105,7 @@ func FindAll() ([]*user_stats.UserStats, error) {
 	// cur.Close(ctxMongo)
 	// return foo, err
 
-	for cur.Next(ctxMongo) {
+	for cur.Next(mongoSession.ctx) {
 		var client user_stats.UserStats
 		err := cur.Decode(&client)
 		if err != nil {
@@ -99,7 +115,7 @@ func FindAll() ([]*user_stats.UserStats, error) {
 		results = append(results, &client)
 	}
 
-	cur.Close(ctxMongo)
+	cur.Close(mongoSession.ctx)
 
 	return results, nil
 }

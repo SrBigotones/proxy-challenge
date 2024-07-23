@@ -8,19 +8,36 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-var ctx = context.Background()
+type RedisClient struct {
+	addr   string
+	port   string
+	passwd string
+	db     int
 
-var client = redis.NewClient(&redis.Options{
-	Addr:     "localhost:6379",
-	Password: "",
-	DB:       0,
-})
+	client *redis.Client
+	ctx    context.Context
+}
 
-func ReadContraintValue(key string, limit int64) bool {
+func NewRedisClient(addr string, port string, passwd string, db int) *RedisClient {
+	return &RedisClient{
+		addr:   addr,
+		port:   port,
+		passwd: passwd,
+		db:     db,
+		ctx:    context.Background(),
+		client: redis.NewClient(&redis.Options{
+			Addr:     addr + ":" + port,
+			Password: passwd,
+			DB:       db,
+		}),
+	}
+}
+
+func (redisSession *RedisClient) ReadContraintValue(key string, limit int64) bool {
 	currentMinute := time.Now().Minute()
 
 	redisKey := fmt.Sprintf("%s:%d", key, currentMinute)
-	reqCheck, err := client.Incr(ctx, redisKey).Result()
+	reqCheck, err := redisSession.client.Incr(redisSession.ctx, redisKey).Result()
 
 	if err != nil || reqCheck > limit {
 		return false
