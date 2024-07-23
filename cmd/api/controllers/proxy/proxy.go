@@ -8,12 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/SrBigotones/proxy-challenge/cmd/api/model/user_stats"
+	"github.com/SrBigotones/proxy-challenge/cmd/api/persistance/mongo_client"
+	"github.com/SrBigotones/proxy-challenge/cmd/api/persistance/redis_client"
 	"github.com/gorilla/mux"
-
-	"github.com/SrBigotones/proxy-challenge/persistance/mongo_client"
-	"github.com/SrBigotones/proxy-challenge/persistance/redis_client"
-
-	"github.com/SrBigotones/proxy-challenge/model/user_stats"
 )
 
 const limitPerIP = 1000

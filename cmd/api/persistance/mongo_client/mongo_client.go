@@ -5,12 +5,11 @@ import (
 	"encoding/json"
 	"log"
 
+	"github.com/SrBigotones/proxy-challenge/cmd/api/model/user_stats"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-
-	"github.com/SrBigotones/proxy-challenge/model/user_stats"
 )
 
 // Mongo related suff here

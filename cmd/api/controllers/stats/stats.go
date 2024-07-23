@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/SrBigotones/proxy-challenge/cmd/api/persistance/mongo_client"
 	"github.com/gorilla/mux"
-
-	"github.com/SrBigotones/proxy-challenge/persistance/mongo_client"
 )
 
 func RegisterRouter(r *mux.Router) {

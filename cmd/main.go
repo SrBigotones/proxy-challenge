@@ -3,8 +3,8 @@ package main
 import (
 	"net/http"
 
-	"github.com/SrBigotones/proxy-challenge/controllers/proxy"
-	"github.com/SrBigotones/proxy-challenge/controllers/stats"
+	"github.com/SrBigotones/proxy-challenge/cmd/api/controllers/proxy"
+	"github.com/SrBigotones/proxy-challenge/cmd/api/controllers/stats"
 	"github.com/gorilla/mux"
 )
 
