@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/SrBigotones/proxy-challenge/cmd/api/controllers/proxy"
 	"github.com/SrBigotones/proxy-challenge/cmd/api/controllers/stats"
@@ -24,9 +25,10 @@ func NewApiServer(addr string, port string) *API {
 
 func (api *API) Run() {
 	println("Starting server")
-
-	mongoSession := mongo_client.NewMognoClient("localhost", "27017", "proxy", "client_stats")
-	redisSession := redis_client.NewRedisClient("localhost", "6379", "", 0)
+	println(os.Getenv("REDIS_DB_HOST"))
+	// os.Getenv("REDIS_DB_HOST")
+	mongoSession := mongo_client.NewMognoClient(os.Getenv("MONGO_DB_HOST"), "27017", "proxy", "client_stats")
+	redisSession := redis_client.NewRedisClient(os.Getenv("REDIS_DB_HOST"), "6379", "", 0)
 	statController := stats.NewStatController(mongoSession)
 	proxyController := proxy.NewProxyController(redisSession, mongoSession)
 

@@ -28,13 +28,16 @@ func NewRedisClient(addr string, port string, passwd string, db int) *RedisClien
 		client: redis.NewClient(&redis.Options{
 			Addr:     addr + ":" + port,
 			Password: passwd,
-			DB:       db,
+			DB:       0,
 		}),
 	}
 }
 
 func (redisSession *RedisClient) ReadContraintValue(key string, limit int64) bool {
 	currentMinute := time.Now().Minute()
+	println("Trying to get key")
+
+	println(key)
 
 	redisKey := fmt.Sprintf("%s:%d", key, currentMinute)
 	reqCheck, err := redisSession.client.Incr(redisSession.ctx, redisKey).Result()

@@ -50,7 +50,15 @@ func (controller *ProxyControler) middleware(next http.Handler) http.Handler {
 		startTime := time.Now().UnixMilli()
 		lrw := controller.NewLogginResponseWrite(w, r)
 
-		fmt.Printf("Request from %s to %s\n", r.RemoteAddr, r.URL)
+		fmt.Printf("Request from %s to %s\n", r.Header.Get("X-Forwarded-For"), r.URL)
+
+		// Loop over header names
+		for name, values := range r.Header {
+			// Loop over all values for the name.
+			for _, value := range values {
+				fmt.Println(name, value)
+			}
+		}
 
 		reqCheck := controller.redisSession.ReadContraintValue(strings.Split(r.RemoteAddr, ":")[0], limitPerIP)
 

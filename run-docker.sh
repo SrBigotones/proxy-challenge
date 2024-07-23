@@ -1,0 +1,1 @@
+docker run -d --name meli1 -p 8081:3000 -e MONGO_DB_HOST=192.168.1.44 -e REDIS_DB_HOST=192.168.1.44 --expose 3000 --net proxy-network proxy-meli

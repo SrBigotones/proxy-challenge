@@ -1,0 +1,44 @@
+version: '3.8'
+services:
+  nginx:      
+    image: nginx:latest
+    environment:
+      - DEFAULT_HOST=web
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./conf.d:/etc/nginx/conf.d
+    ports:
+      # - "3000:3000"
+      - mode: host
+        protocol: tcp
+        published: 80
+        target: 80
+      # - mode: host
+      #   protocol: tcp
+      #   published: 443
+      #   target: 81
+      - target: 3000
+        published: 3000
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 443
+        mode: host
+  web:
+    build: .
+    # networks:
+    #   - proxy-network
+    depends_on:
+      - nginx
+    environment:
+       - REDIS_DB_HOST=192.168.1.44
+       - MONGO_DB_HOST=192.168.1.44
+    # ports:
+    #   - "3000:3000"
+  
+
+    # networks:
+    #   - proxy-network
+# networks:
+#   proxy-network:
+#       external: true
